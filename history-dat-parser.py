@@ -1,5 +1,10 @@
 import sys
 
+#TODO: 
+# * put in a dictionary of systems so that each missed system only prints
+#   once.
+# * parse the game names and manufacturers, put this in a datatype  
+
 class HistDatParser:
 
     _warnings = True
