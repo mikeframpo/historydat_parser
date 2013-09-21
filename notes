@@ -1,0 +1,30 @@
+
+### Notes about the structure of history.dat ###
+
+# Game separator
+$end indicates the end of a game section
+
+# System identification
+The first line of a games's entry indicates the hardware system or systems that the rom originally run on. The f e.g.
+
+$snes		Super Nintendo
+$nes		Nintendo
+$info		Other (commonly used for MAME games)
+$gba		Gameboy advance
+$n64		Nintendo 64
+$gbcolor	Gameboy Color
+$sg1000		Sega Game 1000
+$cpc_cass	Amstrad CPC Cassette
+$cpc_flop	Amstrad CPC Floppy disk
+$bbca_cas	BBC Micro Model A - Cassette
+$megadriv	Sega Megadrive
+
+following the system ID is a series comma-separated rom-names for the game
+
+# Biography
+The $bio token indicates the beginning of the game's biograpgy.
+
+The first non-empty line of the bio seems to consistently contain the game's title. The title line seems to consistently contain the following parts:
+
+<title> (c) <year> <publisher>
+
