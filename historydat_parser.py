@@ -12,6 +12,20 @@ class Game:
     def __init__(self, systems, romnames):
         self.systems = systems
         self.romnames = romnames
+        self.bio = []
+
+    def _add_to_bio(self, line):
+        self.bio.append(line)
+
+    def get_bio(self):
+        return ''.join(self.bio)
+
+class StateInfo:
+
+    def __init__(self, state):
+        self.state = state
+
+    STATE_END, STATE_GAME, STATE_BIO = range(3)
 
 class HistDatParser:
 
@@ -96,7 +110,7 @@ class HistDatParser:
                     systemsline = line[0:eqIdx]
                     parsed = []
                     parsed.append(self.TOKEN_GAMEID)
-                    systems = systemsline.split(',')
+                    systems = systemsline.strip().split(',')
                     for system in systems:
                         try:
                             self._known_systems.has_key(system)
@@ -104,37 +118,41 @@ class HistDatParser:
                             self._unknown_systems.add(system)
                     parsed.append(systems)
                     line = line[eqIdx + 1:]
-                    romnames = line.split(',')
-                    romnames = [rom for rom in romnames if len(rom) > 0]
+                    romnames = line.strip().split(',')
+                    romnames = [rom.strip()
+                        for rom in romnames if len(rom) > 0]
                     parsed.append(romnames)
             
         return parsed
 
-    STATE_END, STATE_GAME, STATE_BIO = range(3)
-
     def _parse(self):
-        state = self.STATE_END
+        state_info = StateInfo(StateInfo.STATE_END)
         for line in self.datfile:
             if self._echo_file:
                 print(line, end='')
             parsed = self._parse_token(line)
-            if state is self.STATE_END:
+            if state_info.state is StateInfo.STATE_END:
                 if parsed is not None:
                     if parsed[0] is self.TOKEN_GAMEID:
-                        self._add_game(parsed)
-                        state = self.STATE_GAME
+                        game = self._add_game(parsed)
+                        state_info = StateInfo(StateInfo.STATE_GAME)
+                        state_info.game = game
                     elif parsed[0] is self.TOKEN_END:
                         continue
                     else:
                         raise Exception('Expected a new system after $end')
-            elif state is self.STATE_GAME:
+            elif state_info.state is StateInfo.STATE_GAME:
                 if parsed is not None:
                     if parsed[0] is self.TOKEN_BIO:
-                        state = self.STATE_BIO
-            elif state is self.STATE_BIO:
+                        game = state_info.game
+                        state_info = StateInfo(StateInfo.STATE_BIO)
+                        state_info.game = game
+            elif state_info.state is StateInfo.STATE_BIO:
                 if parsed is not None:
                     if parsed[0] is self.TOKEN_END:
-                        state = self.STATE_END
+                        state_info = StateInfo(StateInfo.STATE_END)
+                else:
+                    state_info.game._add_to_bio(line)
             else:
                 raise Exception('Unexpected parse state')
         if len(self._unknown_systems) > 0:
@@ -147,8 +165,6 @@ class HistDatParser:
 
     def _add_game(self, parsed):
         assert parsed[0] is HistDatParser.TOKEN_GAMEID
-        assert len(parsed[1]) > 0
-        assert len(parsed[2]) > 0
         systems = parsed[1]
         romnames = parsed[2]
         game = Game(systems, romnames)
@@ -156,6 +172,7 @@ class HistDatParser:
             for romname in romnames:
                 key = self._get_gamekey(system, romname)
                 self._games_by_gamekey[key] = game
+        return game
 
     def get_game(self, system, romname):
         key = self._get_gamekey(system, romname)
@@ -166,4 +183,6 @@ class HistDatParser:
 if __name__ == '__main__':
     filename = sys.argv[1]
     parser = HistDatParser(filename)
+    g = parser.get_game('info', 'dkong')
+    print(g.get_bio())
 
