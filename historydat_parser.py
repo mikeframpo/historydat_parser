@@ -1,21 +1,47 @@
 
 from __future__ import print_function
 import sys
+import re
 
 #TODO: 
-# * make a new variable to print out the file optionally
-# * parse the game names and manufacturers, put this in a datatype  
 # * fail if an unexpected state occurs
 
+_verbose = False
+_echo_file = False
+
+
 class Game:
+
+    regex = re.compile(r'(.+)\s+\(c\)\s+([0-9]+)\s+(.+)')
 
     def __init__(self, systems, romnames):
         self.systems = systems
         self.romnames = romnames
         self.bio = []
+        self.name = None
+        self.publisher = None
+        self.year = None
 
     def _add_to_bio(self, line):
         self.bio.append(line)
+        # name information is on the second line of the bio
+        if self.name is None and len(self.bio) == 2:
+            parsed = self._parse_name_info(line)
+            if parsed is not None:
+                self.name = parsed[0]
+                self.year = parsed[1]
+                self.publisher = parsed[2]
+            
+    def _parse_name_info(self, line):
+        match = self.regex.match(line.strip())
+        if match is not None:
+            groups = match.groups()
+            if len(groups) == 3:
+                return groups
+        if _verbose:
+            print('Failed to parse info line:')
+            print(line)
+        return None
 
     def get_bio(self):
         return ''.join(self.bio)
@@ -28,9 +54,6 @@ class StateInfo:
     STATE_END, STATE_GAME, STATE_BIO = range(3)
 
 class HistDatParser:
-
-    _verbose = True
-    _echo_file = False
 
     _known_systems = {
         'snes': 'Super Nintendo',
@@ -128,7 +151,7 @@ class HistDatParser:
     def _parse(self):
         state_info = StateInfo(StateInfo.STATE_END)
         for line in self.datfile:
-            if self._echo_file:
+            if _echo_file:
                 print(line, end='')
             parsed = self._parse_token(line)
             if state_info.state is StateInfo.STATE_END:
@@ -155,10 +178,11 @@ class HistDatParser:
                     state_info.game._add_to_bio(line)
             else:
                 raise Exception('Unexpected parse state')
-        if len(self._unknown_systems) > 0:
-            print("Found unknown game systems:")
-            for system in self._unknown_systems:
-                print(system)
+        if _verbose:
+            if len(self._unknown_systems) > 0:
+                print("Found unknown game systems:")
+                for system in self._unknown_systems:
+                    print(system)
 
     def _get_gamekey(self, system, romname):
         return '{0}_{1}'.format(system, romname)
