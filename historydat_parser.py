@@ -24,13 +24,13 @@ class Game:
         self.year = None
 
     def _filter_line(self, line):
-        return filter(lambda x: x in string.printable, line)
+        return str(filter(lambda x: x in string.printable, line))
 
     def _add_to_bio(self, line):
-        line = self._filter_line(line)
+        #line = self._filter_line(line)
         self.bio.append(line)
         # name information is on the second line of the bio
-        if self.name is None and len(self.bio) == 2:
+        if self.name is None and len(self.bio) >= 2:
             parsed = self._parse_name_info(line)
             if parsed is not None:
                 self.name = parsed[0]
@@ -140,9 +140,7 @@ class HistDatParser:
                     parsed.append(self.TOKEN_GAMEID)
                     systems = systemsline.strip().split(',')
                     for system in systems:
-                        try:
-                            self._known_systems.has_key(system)
-                        except ValueError:
+                        if system not in self._known_systems:
                             self._unknown_systems.add(system)
                     parsed.append(systems)
                     line = line[eqIdx + 1:]
@@ -205,7 +203,7 @@ class HistDatParser:
 
     def get_game(self, system, romname):
         key = self._get_gamekey(system, romname)
-        if self._games_by_gamekey.has_key(key):
+        if key in self._games_by_gamekey:
             return self._games_by_gamekey[key]
         return None
 
